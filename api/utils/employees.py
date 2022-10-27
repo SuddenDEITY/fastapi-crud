@@ -50,9 +50,10 @@ async def put_update_employee(
         db=db, phone_number=employee.phone_number
     )
     if existing_employee:
-        raise HTTPException(
-            status_code=403, detail="This phone number is already taken!"
-        )
+        if existing_employee.id != employee_id:
+            raise HTTPException(
+                status_code=403, detail="Phone number is already registered"
+            )
 
     for var, value in vars(employee).items():
         setattr(db_employee, var, value) if value is not None else None
@@ -76,7 +77,7 @@ async def patch_update_employee(
     )
     if existing_employee:
         raise HTTPException(
-            status_code=403, detail="This phone number is already taken!"
+            status_code=403, detail="Phone number is already registered"
         )
 
     employee_data = employee.dict(exclude_unset=True)

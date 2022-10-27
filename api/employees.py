@@ -34,7 +34,7 @@ async def create_new_employee(
     )
     if db_employee:
         raise HTTPException(
-            status_code=400, detail="Phone number is already registered"
+            status_code=403, detail="Phone number is already registered"
         )
     result = await create_employee(db=db, employee=employee)
     return result
