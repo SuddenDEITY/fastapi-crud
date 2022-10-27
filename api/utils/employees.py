@@ -1,74 +1,81 @@
 from datetime import datetime
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from sqlalchemy.future import select
 from db.models.employee import Employee
 from schemas.employee import EmployeeCreate, EmployeeUpdate
 
 
-def get_employee(db: Session, employee_id: int):
-    return db.query(Employee).filter(Employee.id == employee_id).one_or_none()
+async def get_employee(db: AsyncSession, employee_id: int):
+    query = select(Employee).where(Employee.id == employee_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
 
-def get_employee_by_phone_number(db: Session, phone_number: str):
-    return db.query(Employee).filter(Employee.phone_number == phone_number).one_or_none()
+async def get_employee_by_phone_number(db: AsyncSession, phone_number: str):
+    query = select(Employee).where(Employee.phone_number == phone_number)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
 
 
-def get_employees(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Employee).offset(skip).limit(limit).all()
+async def get_employees(db: AsyncSession, skip: int = 0, limit: int = 100):
+    query = select(Employee).offset(skip).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
 
 
-def create_employee(db: Session, employee: EmployeeCreate):
+async def create_employee(db: AsyncSession, employee: EmployeeCreate):
     db_employee = Employee(name=employee.name, age=employee.age,
                        phone_number=employee.phone_number, role=employee.role,
                        salary=employee.salary)
     db.add(db_employee)
-    db.commit()
-    db.refresh(db_employee)
+    await db.commit()
+    await db.refresh(db_employee)
     return db_employee
 
-def put_update_employee(db: Session, employee: EmployeeCreate, employee_id: int):
-    db_employee = db.query(Employee).filter(Employee.id == employee_id).one_or_none()
+async def put_update_employee(db: AsyncSession, employee: EmployeeCreate, employee_id: int):
+    db_employee = await get_employee(db=db, employee_id=employee_id)
     
     if db_employee is None:
         raise HTTPException(status_code=404, detail="Employee not found!")
 
-    existing_employee = get_employee_by_phone_number(db=db, phone_number=employee.phone_number)
+    existing_employee = await get_employee_by_phone_number(db=db, phone_number=employee.phone_number)
     if existing_employee:
         raise HTTPException(status_code=403, detail="This phone number is already taken!")
 
     for var, value in vars(employee).items():
-        setattr(db_employee, var, value) if value else None
+        setattr(db_employee, var, value) if value != None else None
 
-    db_employee.modified = datetime.utcnow()
+    db_employee.updated_at = datetime.utcnow()
     db.add(db_employee)
-    db.commit()
-    db.refresh(db_employee)
+    await db.commit()
+    await db.refresh(db_employee)
     return db_employee
 
 
-def patch_update_employee(db: Session, employee: EmployeeUpdate, employee_id: int):
-    db_employee = db.query(Employee).filter(Employee.id == employee_id).one_or_none()
+async def patch_update_employee(db: AsyncSession, employee: EmployeeUpdate, employee_id: int):
+    db_employee = await get_employee(db=db, employee_id=employee_id)
     if db_employee is None:
         raise HTTPException(status_code=404, detail="Employee not found!")
 
-    existing_employee = get_employee_by_phone_number(db=db, phone_number=employee.phone_number)
+    existing_employee = await get_employee_by_phone_number(db=db, phone_number=employee.phone_number)
     if existing_employee:
         raise HTTPException(status_code=403, detail="This phone number is already taken!")
 
     employee_data = employee.dict(exclude_unset=True)
     for var, value in employee_data.items():
-        setattr(db_employee, var, value) if value else None
+        setattr(db_employee, var, value) if value != None else None
 
-    db_employee.modified = datetime.utcnow()
+    db_employee.updated_at = datetime.utcnow()
     db.add(db_employee)
-    db.commit()
-    db.refresh(db_employee)
+    await db.commit()
+    await db.refresh(db_employee)
     return db_employee
 
-def delete_employee(db: Session, employee_id: int):
-    employee = db.query(Employee).filter(Employee.id == employee_id).one_or_none()
+async def delete_employee(db: AsyncSession, employee_id: int):
+    employee = await get_employee(db=db, employee_id=employee_id)
     if employee is None:
         raise HTTPException(status_code=404, detail="Employee not found!")
     db.delete(employee)
-    db.commit()
+    await db.commit()
     return {"ok": True}
