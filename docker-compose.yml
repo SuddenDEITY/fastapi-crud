@@ -1,0 +1,29 @@
+version: '3.9'
+
+services:
+  web:
+   build: .
+   command: uvicorn main:app --host 0.0.0.0 --reload
+   volumes:
+    - .:/code
+   ports:
+    - 8000:8000
+   environment:
+      - DATABASE_URL=postgresql://fastapi_crud:fastapi_crud@db:5432/fastapi_crud_db
+   depends_on:
+    - db
+  db:
+   image: postgres:14
+   container_name: fastapi_postgres
+   volumes:
+    - postgres_data:/var/lib/postgresql/data/
+   expose:
+      - 5432
+   environment:
+      - POSTGRES_USER=fastapi_crud
+      - POSTGRES_PASSWORD=fastapi_crud
+      - POSTGRES_DB=fastapi_crud_db
+   restart: unless-stopped
+   
+volumes:
+   postgres_data:
