@@ -92,8 +92,9 @@ async def patch_update_employee(
 
 async def delete_employee(db: AsyncSession, employee_id: int):
     employee = await get_employee(db=db, employee_id=employee_id)
+    print(employee)
     if employee is None:
         raise HTTPException(status_code=404, detail="Employee not found!")
-    db.delete(employee)
+    await db.delete(employee)
     await db.commit()
     return {"ok": True}

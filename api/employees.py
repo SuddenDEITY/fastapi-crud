@@ -70,4 +70,5 @@ async def read_employee(employee_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.delete("/employees/{employee_id}")
 async def remove_employee(employee_id: int, db: AsyncSession = Depends(get_db)):
-    return await delete_employee(db=db, employee_id=employee_id)
+    result = await delete_employee(db=db, employee_id=employee_id)
+    return result
