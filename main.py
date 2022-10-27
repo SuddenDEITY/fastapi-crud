@@ -1,31 +1,12 @@
 from typing import Optional, List
-from fastapi import FastAPI, Path, Query
+from fastapi import FastAPI
 from pydantic import BaseModel
+from db.config import engine
+from db.models import employee
+from api import employees
 
-app = FastAPI()
+employee.Base.metadata.create_all(bind=engine)
 
-users = []
+app = FastAPI(title="FastAPI little CRUD")
 
-class User(BaseModel):
-    email: str
-    is_active: bool
-    bio: Optional[str]
-
-
-@app.get("/users", response_model=List[User])
-async def get_users():
-    return users
-
-
-@app.post("/users")
-async def create_user(user: User):
-    users.append(user)
-    return "Success"
-
-
-@app.get("/users/{id}")
-async def get_user(
-    id: int = Path(..., description="The ID of the user you want to retrieve.", gt=2),
-    q: str = Query(None, max_length=5)
-):
-    return { "user": users[id], "query": q }
+app.include_router(employees.router)
