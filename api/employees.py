@@ -1,29 +1,49 @@
-from typing import Optional, List
+from typing import List
 import fastapi
-from pydantic import BaseModel
+from fastapi import Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from db.config import get_db
+from schemas.employee import EmployeeCreate, Employee, EmployeeUpdate
+from api.utils.employees import delete_employee, get_employee, get_employee_by_phone_number, \
+                                get_employees, create_employee, put_update_employee, \
+                                patch_update_employee, delete_employee
 
 router = fastapi.APIRouter()
 
-users = []
+
+@router.get("/employees", response_model=List[Employee])
+async def read_employees(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    employees = get_employees(db, skip=skip, limit=limit)
+    return employees
 
 
-class User(BaseModel):
-    email: str
-    is_active: bool
-    bio: Optional[str]
+@router.post("/employees", response_model=Employee, status_code=201)
+async def create_new_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
+    db_employee = get_employee_by_phone_number(db=db, phone_number=employee.phone_number)
+    if db_employee:
+        raise HTTPException(status_code=400, detail="Phone number is already registered")
+    return create_employee(db=db, employee=employee)
+
+@router.put("/employees/{employee_id}", response_model=Employee, status_code=200)
+async def full_update_employee(employee_id: int, employee: EmployeeCreate, db: Session = Depends(get_db)):
+    db_employee = put_update_employee(db=db, employee_id=employee_id, employee=employee) 
+    return db_employee
 
 
-@router.get("/users", response_model=List[User])
-async def get_users():
-    return users
+@router.patch("/employees/{employee_id}", response_model=Employee, status_code=200)
+async def partial_update_employee(employee_id: int, employee: EmployeeUpdate, db: Session = Depends(get_db)):
+    db_employee = patch_update_employee(db=db, employee_id=employee_id, employee=employee) 
+    return db_employee
 
 
-@router.post("/users")
-async def create_user(user: User):
-    users.append(user)
-    return "Success"
+@router.get("/employees/{employee_id}", response_model=Employee)
+async def read_employee(employee_id: int, db: Session = Depends(get_db)):
+    db_employee = get_employee(db=db, employee_id=employee_id)
+    if db_employee is None:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return db_employee
 
-
-@router.get("/users/{id}")
-async def get_user(id: int):
-    return { "user": users[id] }
+@router.delete("/employees/{employee_id}")
+async def remove_employee(employee_id: int, db: Session = Depends(get_db)):
+    return delete_employee(db=db, employee_id=employee_id)
