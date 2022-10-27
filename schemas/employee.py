@@ -7,15 +7,15 @@ class EmployeeBase(BaseModel):
     name: str
     age: int
     role: int
-    salary : int
+    salary: int
     phone_number: str
-    
+
 
 class EmployeeUpdate(BaseModel):
     name: Optional[str]
     age: Optional[int]
     role: Optional[int]
-    salary : Optional[int]
+    salary: Optional[int]
     phone_number: Optional[str]
 
 
@@ -30,4 +30,3 @@ class Employee(EmployeeBase):
 
     class Config:
         orm_mode = True
-

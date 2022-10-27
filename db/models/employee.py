@@ -1,7 +1,6 @@
 import enum
-from zoneinfo import available_timezones
 from sqlalchemy.orm import validates
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Enum, Text
+from sqlalchemy import Column, Integer, String, Enum
 from fastapi import HTTPException
 from ..config import Base
 from .mixins import Timestamp
@@ -24,18 +23,20 @@ class Employee(Timestamp, Base):
     salary = Column(Integer, index=True, nullable=False)
     role = Column(Enum(Role))
 
-    @validates('phone_number')
+    @validates("phone_number")
     def validate_phone_number(self, key, value):
-        if '+' not in value:
-            raise HTTPException(status_code=400, detail="Phone number must contain '+' ")
+        if "+" not in value:
+            raise HTTPException(
+                status_code=400, detail="Phone number must contain '+' "
+            )
         return value
-    
-    @validates('role')
+
+    @validates("role")
     def validate_role(self, key, value):
         available_roles = [role.value for role in Role]
         if value not in available_roles:
-             raise HTTPException(status_code=400, detail=f"Invalid role! Available roles: {available_roles}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid role! Available roles: {available_roles}",
+            )
         return value
-    
-    
-
